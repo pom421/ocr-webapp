@@ -1,6 +1,9 @@
 # Copilot Instructions
 
-This project is a web application, that allows users to take png files and returns the text content or a pdf file with selectable text. The application is built in Deno and TypeScript.
+This project is a web application, that allows users to take png files and returns the text content or a pdf file with selectable text. The application is built with Node and TypeScript.
+Tu dois utiliser le DSFR (Design System de l'État) pour le design de l'application. (https://www.systeme-de-design.gouv.fr/version-courante/fr)
+Tu dois faire une unique page, en pure HTML, CSS et JavaScript, sans framework. Tu ne dois pas utiliser de framework comme React, Vue ou Angular.
+
 
 ## Coding Standards
 

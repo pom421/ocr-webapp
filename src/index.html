@@ -59,7 +59,6 @@
 
       .fr-dropzone:hover {
         border-color: var(--border-active-blue-france);
-        background: var(--background-active-blue-france);
       }
 
       .fr-dropzone.disabled {
@@ -69,7 +68,6 @@
 
       .fr-dropzone.drag-over {
         border-color: var(--border-active-blue-france);
-        background: var(--background-active-blue-france);
       }
 
       .fr-dropzone__icon {
@@ -211,9 +209,11 @@
                 style="display: none"
               />
               <div class="fr-dropzone" id="dropzone">
-                <div class="fr-dropzone__icon">
-                  <i class="fr-icon-upload-line" aria-hidden="true"></i>
-                </div>
+                <!-- <span class="fr-icon-upload-line fr-dropzone__icon" aria-hidden="true"></span> -->
+                <span
+                  class="fr-icon-checkbox-circle-line fr-dropzone__icon"
+                  aria-hidden="true"
+                ></span>
                 <p class="fr-dropzone__text">
                   Glissez et déposez un fichier PDF, JPG, PNG ou GIF ici
                 </p>
@@ -240,7 +240,7 @@
                       aria-label="Copier le texte dans le presse-papiers"
                       onclick="copyToClipboard('fullDocument', this)"
                     >
-                      <i class="fr-icon-clipboard-line" aria-hidden="true"></i>
+                      <span class="fr-icon-clipboard-line" aria-hidden="true"></span>
                     </button>
                   </div>
                 </div>
@@ -268,17 +268,15 @@
             </a>
           </div>
           <div class="fr-footer__content">
-            <p class="fr-footer__content-desc">
-              OCR DSFR - Application de reconnaissance optique de caractères
-            </p>
+            <p class="fr-footer__content-desc">OCR DSFR - Reconnaissance de document</p>
           </div>
         </div>
         <div class="fr-footer__bottom">
-          <ul class="fr-footer__bottom-list">
+          <!-- <ul class="fr-footer__bottom-list">
             <li class="fr-footer__bottom-item">
               <span class="fr-footer__bottom-link">© 2025 - OCR DSFR</span>
             </li>
-          </ul>
+          </ul> -->
         </div>
       </div>
     </footer>
@@ -309,7 +307,7 @@
           await navigator.clipboard.writeText(text);
 
           // Feedback visuel - changer l'icône temporairement
-          const icon = buttonElement.querySelector("i");
+          const icon = buttonElement.querySelector(".fr-icon-clipboard-line, .fr-icon-check-line");
           const originalClass = icon.className;
 
           // Changer pour une icône de validation
@@ -317,11 +315,19 @@
           buttonElement.classList.add("copied");
           buttonElement.title = "Texte copié !";
 
+          // Forcer l'initialisation DSFR des icônes
+          if (window.dsfr && typeof window.dsfr.apply === "function") {
+            window.dsfr.apply();
+          }
+
           // Remettre l'icône d'origine après 2 secondes
           setTimeout(() => {
             icon.className = originalClass;
             buttonElement.classList.remove("copied");
             buttonElement.title = "Copier le texte";
+            if (window.dsfr && typeof window.dsfr.apply === "function") {
+              window.dsfr.apply();
+            }
           }, 2000);
         } catch (err) {
           console.error("Erreur lors de la copie:", err);
@@ -332,13 +338,15 @@
           document.execCommand("copy");
 
           // Feedback visuel même pour le fallback
-          const icon = buttonElement.querySelector("i");
-          const originalClass = icon.className;
-          icon.className = "fr-icon-check-line";
+          const originalClass = buttonElement.className;
+          buttonElement.className = originalClass.replace(
+            "fr-icon-clipboard-line",
+            "fr-icon-check-line"
+          );
           buttonElement.classList.add("copied");
 
           setTimeout(() => {
-            icon.className = originalClass;
+            buttonElement.className = originalClass;
             buttonElement.classList.remove("copied");
           }, 2000);
         }
@@ -580,8 +588,7 @@
         imageContainer.innerHTML = "";
 
         const originalText = dropzone.innerHTML;
-        dropzone.innerHTML =
-          '<div class="fr-processing-info">Traitement du fichier en cours...</div>';
+        dropzone.innerHTML = '<div class="">Traitement du fichier en cours...</div>';
         dropzone.classList.add("disabled");
         fileSelectionAllowed = false;
 
@@ -589,7 +596,7 @@
           if (file.type === "application/pdf") {
             const { numPages, imageIterator } = await convertPDFToImages(file);
             let done = 0;
-            dropzone.innerHTML = `<div class="fr-processing-info">Traitement de ${numPages} page${numPages > 1 ? "s" : ""}</div>`;
+            dropzone.innerHTML = `<div class="">Traitement de ${numPages} page${numPages > 1 ? "s" : ""}</div>`;
 
             for await (const { imageURL } of imageIterator) {
               const ta = await displayImage(imageURL);
@@ -597,7 +604,7 @@
               setTextarea(ta, text);
               showFullDocument();
               done += 1;
-              dropzone.innerHTML = `<div class="fr-processing-info">Terminé ${done} sur ${numPages}</div>`;
+              dropzone.innerHTML = `<div class="">Terminé ${done} sur ${numPages}</div>`;
             }
           } else {
             const imageURL = URL.createObjectURL(file);
@@ -650,7 +657,7 @@
         copyButton.setAttribute("aria-label", "Copier le texte dans le presse-papiers");
         copyButton.onclick = () => copyToClipboard(textareaId, copyButton);
 
-        const copyIcon = document.createElement("i");
+        const copyIcon = document.createElement("span");
         copyIcon.className = "fr-icon-clipboard-line";
         copyIcon.setAttribute("aria-hidden", "true");
         copyButton.appendChild(copyIcon);
@@ -660,6 +667,11 @@
         textareaContainer.appendChild(label);
         textareaContainer.appendChild(textareaWrapper);
         imageContainer.appendChild(textareaContainer);
+
+        // Forcer l'initialisation DSFR des icônes après ajout dynamique
+        if (window.dsfr && typeof window.dsfr.apply === "function") {
+          window.dsfr.apply();
+        }
 
         return textarea;
       }
@@ -677,7 +689,7 @@
         const numImages = images.length;
         let done = 0;
         const originalText = dropzone.innerHTML;
-        dropzone.innerHTML = `<div class="fr-processing-info">Retraitement de ${numImages} image${numImages > 1 ? "s" : ""}</div>`;
+        dropzone.innerHTML = `<div class="">Retraitement de ${numImages} image${numImages > 1 ? "s" : ""}</div>`;
 
         const worker = await Tesseract.createWorker(languageSelect.value);
 
@@ -689,7 +701,7 @@
           setTextarea(ta, text);
           showFullDocument();
           done += 1;
-          dropzone.innerHTML = `<div class="fr-processing-info">Terminé ${done} sur ${numImages}</div>`;
+          dropzone.innerHTML = `<div class="">Terminé ${done} sur ${numImages}</div>`;
         }
 
         await worker.terminate();

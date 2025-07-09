@@ -1,0 +1,31 @@
+{
+  "name": "ocr-dsfr",
+  "version": "1.0.0",
+  "description": "Application OCR utilisant le Design System de l'État français",
+  "main": "src/index.html",
+  "scripts": {
+    "dev": "http-server src -p 3000 -o",
+    "start": "http-server src -p 3000",
+    "format": "prettier --write \"**/*.{html,css,js,json}\""
+  },
+  "keywords": [
+    "ocr",
+    "dsfr",
+    "webapp",
+    "accessibility"
+  ],
+  "author": "OCR DSFR Team",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "prettier": "^3.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "."
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

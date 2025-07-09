@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OCR DSFR - Reconnaissance optique de caractères</title>
+    <title>OCR DSFR</title>
 
     <!-- DSFR CSS -->
     <link
@@ -189,7 +189,7 @@
         <div class="fr-grid-row fr-grid-row--center">
           <div class="fr-col-12 fr-col-lg-10">
             <section class="fr-my-6w">
-              <h1>Reconnaissance optique de caractères (OCR)</h1>
+              <h1>OCR DSFR</h1>
               <p class="fr-text--lead">
                 Convertissez vos images et PDFs en texte directement dans votre navigateur. Aucun
                 fichier n'est envoyé vers un serveur.
@@ -198,7 +198,7 @@
               <!-- Sélection de langue -->
               <div class="fr-language-select">
                 <div class="fr-select-group">
-                  <label class="fr-label" for="languageSelect"> Langue de reconnaissance : </label>
+                  <label class="fr-label" for="languageSelect"> Langue du document</label>
                   <select class="fr-select" id="languageSelect">
                     <option value="eng">Anglais</option>
                   </select>
@@ -272,7 +272,9 @@
             </a>
           </div>
           <div class="fr-footer__content">
-            <p class="fr-footer__content-desc">OCR DSFR - Reconnaissance de document</p>
+            <p class="fr-footer__content-desc">
+              Cet outil est proposé par la Fabrique numérique de la DTNum (DGFiP)
+            </p>
           </div>
         </div>
         <div class="fr-footer__bottom">
@@ -367,109 +369,109 @@
 
       let fileSelectionAllowed = true;
 
-      // Langues supportées par Tesseract
+      // Langues supportées par Tesseract (affichage en français)
       const LANGUAGES = {
         afr: "Afrikaans",
-        amh: "Amharic",
-        ara: "Arabic",
-        asm: "Assamese",
-        aze: "Azerbaijani",
-        aze_cyrl: "Azerbaijani - Cyrillic",
-        bel: "Belarusian",
+        amh: "Amharique",
+        ara: "Arabe",
+        asm: "Assamais",
+        aze: "Azéri",
+        aze_cyrl: "Azéri (Cyrillique)",
+        bel: "Biélorusse",
         ben: "Bengali",
-        bod: "Tibetan",
-        bos: "Bosnian",
-        bul: "Bulgarian",
-        cat: "Catalan; Valencian",
+        bod: "Tibétain",
+        bos: "Bosniaque",
+        bul: "Bulgare",
+        cat: "Catalan",
         ceb: "Cebuano",
-        ces: "Czech",
-        chi_sim: "Chinese - Simplified",
-        chi_tra: "Chinese - Traditional",
+        ces: "Tchèque",
+        chi_sim: "Chinois simplifié",
+        chi_tra: "Chinois traditionnel",
         chr: "Cherokee",
-        cym: "Welsh",
-        dan: "Danish",
-        deu: "German",
+        cym: "Gallois",
+        dan: "Danois",
+        deu: "Allemand",
         dzo: "Dzongkha",
-        ell: "Greek, Modern (1453-)",
-        eng: "English",
-        enm: "English, Middle (1100-1500)",
-        epo: "Esperanto",
-        est: "Estonian",
+        ell: "Grec",
+        eng: "Anglais",
+        enm: "Anglais (Moyen)",
+        epo: "Espéranto",
+        est: "Estonien",
         eus: "Basque",
-        fas: "Persian",
-        fin: "Finnish",
-        fra: "French",
-        frk: "German Fraktur",
-        frm: "French, Middle (ca. 1400-1600)",
-        gle: "Irish",
-        glg: "Galician",
-        grc: "Greek, Ancient (-1453)",
+        fas: "Persan",
+        fin: "Finnois",
+        fra: "Français",
+        frk: "Fraktur allemand",
+        frm: "Français (Moyen)",
+        gle: "Irlandais",
+        glg: "Galicien",
+        grc: "Grec ancien",
         guj: "Gujarati",
-        hat: "Haitian; Haitian Creole",
-        heb: "Hebrew",
+        hat: "Haïtien",
+        heb: "Hébreu",
         hin: "Hindi",
-        hrv: "Croatian",
-        hun: "Hungarian",
+        hrv: "Croate",
+        hun: "Hongrois",
         iku: "Inuktitut",
-        ind: "Indonesian",
-        isl: "Icelandic",
-        ita: "Italian",
-        ita_old: "Italian - Old",
-        jav: "Javanese",
-        jpn: "Japanese",
+        ind: "Indonésien",
+        isl: "Islandais",
+        ita: "Italien",
+        ita_old: "Italien (ancien)",
+        jav: "Javanais",
+        jpn: "Japonais",
         kan: "Kannada",
-        kat: "Georgian",
-        kat_old: "Georgian - Old",
+        kat: "Géorgien",
+        kat_old: "Géorgien (ancien)",
         kaz: "Kazakh",
-        khm: "Central Khmer",
-        kir: "Kirghiz; Kyrgyz",
-        kor: "Korean",
-        kur: "Kurdish",
+        khm: "Khmer",
+        kir: "Kirghiz",
+        kor: "Coréen",
+        kur: "Kurde",
         lao: "Lao",
         lat: "Latin",
-        lav: "Latvian",
-        lit: "Lithuanian",
+        lav: "Letton",
+        lit: "Lituanien",
         mal: "Malayalam",
         mar: "Marathi",
-        mkd: "Macedonian",
-        mlt: "Maltese",
-        msa: "Malay",
-        mya: "Burmese",
-        nep: "Nepali",
-        nld: "Dutch; Flemish",
-        nor: "Norwegian",
+        mkd: "Macédonien",
+        mlt: "Maltais",
+        msa: "Malais",
+        mya: "Birman",
+        nep: "Népalais",
+        nld: "Néerlandais",
+        nor: "Norvégien",
         ori: "Oriya",
-        pan: "Panjabi; Punjabi",
-        pol: "Polish",
-        por: "Portuguese",
-        pus: "Pushto; Pashto",
-        ron: "Romanian; Moldavian; Moldovan",
-        rus: "Russian",
+        pan: "Pendjabi",
+        pol: "Polonais",
+        por: "Portugais",
+        pus: "Pachto",
+        ron: "Roumain",
+        rus: "Russe",
         san: "Sanskrit",
-        sin: "Sinhala; Sinhalese",
-        slk: "Slovak",
-        slv: "Slovenian",
-        spa: "Spanish; Castilian",
-        spa_old: "Spanish; Castilian - Old",
-        sqi: "Albanian",
-        srp: "Serbian",
-        srp_latn: "Serbian - Latin",
+        sin: "Cingalais",
+        slk: "Slovaque",
+        slv: "Slovène",
+        spa: "Espagnol",
+        spa_old: "Espagnol (ancien)",
+        sqi: "Albanais",
+        srp: "Serbe",
+        srp_latn: "Serbe (latin)",
         swa: "Swahili",
-        swe: "Swedish",
-        syr: "Syriac",
-        tam: "Tamil",
-        tel: "Telugu",
-        tgk: "Tajik",
+        swe: "Suédois",
+        syr: "Syriaque",
+        tam: "Tamoul",
+        tel: "Télougou",
+        tgk: "Tadjik",
         tgl: "Tagalog",
-        tha: "Thai",
-        tir: "Tigrinya",
-        tur: "Turkish",
-        uig: "Uighur; Uyghur",
-        ukr: "Ukrainian",
-        urd: "Urdu",
-        uzb: "Uzbek",
-        uzb_cyrl: "Uzbek - Cyrillic",
-        vie: "Vietnamese",
+        tha: "Thaï",
+        tir: "Tigrigna",
+        tur: "Turc",
+        uig: "Ouïghour",
+        ukr: "Ukrainien",
+        urd: "Ourdou",
+        uzb: "Ouzbek",
+        uzb_cyrl: "Ouzbek (Cyrillique)",
+        vie: "Vietnamien",
         yid: "Yiddish"
       };
 

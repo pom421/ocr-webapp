@@ -4,8 +4,8 @@
   "description": "Application OCR utilisant le Design System de l'État français",
   "main": "src/index.html",
   "scripts": {
-    "dev": "http-server src -p 3000 -o",
-    "start": "http-server src -p 3000",
+    "dev": "http-server . -p 3000 -o",
+    "start": "http-server . -p 3000",
     "format": "prettier --write \"**/*.{html,css,js,json}\""
   },
   "keywords": [

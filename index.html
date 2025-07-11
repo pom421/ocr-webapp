@@ -29,7 +29,7 @@
   <!-- Tesseract.js -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js"></script>
 
-  <!-- OpenCV.js -->
+  <!-- OpenCV.js - Plus nécessaire avec l'approche ImageMagick
   <script>
     // Configuration d'OpenCV selon la documentation officielle
     var Module = {
@@ -42,6 +42,7 @@
     };
   </script>
   <script async src="https://docs.opencv.org/4.10.0/opencv.js" type="text/javascript"></script>
+  -->
 
   <style>
     .fr-dropzone {
@@ -767,104 +768,142 @@
       return { numPages: numPages, imageIterator: images() };
     }
 
-    // Variables globales
-    let opencvReady = false;
+    // Variables globales - plus besoin d'OpenCV
+    // let opencvReady = false;
 
-    // Callback appelé quand OpenCV est prêt
-    window.onOpenCvReady = function() {
-      console.log('OpenCV.js chargé avec succès');
-      opencvReady = true;
+    // Plus besoin du callback OpenCV
+    // window.onOpenCvReady = function() {
+    //   console.log('OpenCV.js chargé avec succès');
+    //   opencvReady = true;
+    // };
 
-      // Vérifier la disponibilité des fonctions OpenCV
-      console.log('cv.imread disponible:', typeof cv.imread);
-      console.log('cv.imshow disponible:', typeof cv.imshow);
-      console.log('cv.cvtColor disponible:', typeof cv.cvtColor);
-      console.log('cv.Mat disponible:', typeof cv.Mat);
-    };
-
-    // Fonction de prétraitement d'image avec OpenCV.js
+    // Fonction de prétraitement d'image inspirée d'ImageMagick
     function preprocessImage(image) {
-      // Si OpenCV n'est pas prêt, retourner l'image originale
-      if (!opencvReady || !window.cv || typeof cv.imread === 'undefined') {
-        console.log("OpenCV pas disponible, utilisation de l'image originale");
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = image.width;
-        canvas.height = image.height;
-        ctx.drawImage(image, 0, 0);
-        return canvas;
-      }
+      console.log("Traitement d'image: auto-level + OTSU + auto-gamma + unsharp + resize");
 
       try {
-        console.log("Traitement avec OpenCV.js: upscaling + niveaux de gris + sharpening + binarisation + morphologie");
-
         // Créer un canvas pour l'image d'entrée
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = image.width;
-        canvas.height = image.height;
-        ctx.drawImage(image, 0, 0);
 
-        // Lire l'image dans une matrice OpenCV
-        let src = cv.imread(canvas);
-        let gray = new cv.Mat();
-        let sharpened = new cv.Mat();
-        let binary = new cv.Mat();
-        let morphed = new cv.Mat();
-        let upscaled = new cv.Mat();
+        // Étape 1: Resize à 2970x2970 (équivalent -resize 2970x2970)
+        const targetSize = 2970;
+        const scale = Math.min(targetSize / image.width, targetSize / image.height);
+        const newWidth = Math.floor(image.width * scale);
+        const newHeight = Math.floor(image.height * scale);
 
-        // Étape 1: Upscaling x2 pour préserver plus de détails
-        cv.resize(src, upscaled, new cv.Size(src.cols * 2, src.rows * 2), 0, 0, cv.INTER_CUBIC);
+        canvas.width = newWidth;
+        canvas.height = newHeight;
 
-        // Étape 2: Conversion en niveaux de gris
-        if (upscaled.channels() === 4) {
-          cv.cvtColor(upscaled, gray, cv.COLOR_RGBA2GRAY);
-        } else if (upscaled.channels() === 3) {
-          cv.cvtColor(upscaled, gray, cv.COLOR_RGB2GRAY);
-        } else {
-          gray = upscaled.clone();
+        // Dessiner l'image redimensionnée avec lissage
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(image, 0, 0, newWidth, newHeight);
+
+        // Étape 2: Auto-level et auto-gamma (normalisation des niveaux)
+        const imageData = ctx.getImageData(0, 0, newWidth, newHeight);
+        const data = imageData.data;
+
+        // Calculer les valeurs min/max pour auto-level
+        let min = 255, max = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+          min = Math.min(min, gray);
+          max = Math.max(max, gray);
         }
 
-        // Étape 3: Sharpening pour améliorer la netteté des contours
-        let sharpenKernel = cv.matFromArray(3, 3, cv.CV_32FC1, [
-          0, -1, 0,
-          -1, 5, -1,
-          0, -1, 0
-        ]);
-        cv.filter2D(gray, sharpened, cv.CV_8U, sharpenKernel);
+        // Appliquer auto-level et auto-gamma
+        const range = max - min;
+        if (range > 0) {
+          for (let i = 0; i < data.length; i += 4) {
+            // Conversion en niveaux de gris
+            const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
 
-        // Étape 4: Binarisation adaptative avec paramètres ajustés pour l'upscaling
-        cv.adaptiveThreshold(sharpened, binary, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 21, 3);
+            // Auto-level: normaliser entre 0-255
+            let normalized = ((gray - min) / range) * 255;
 
-        // Étape 5: Morphologie pour "combler" et renforcer les caractères
-        // Utiliser un noyau elliptique pour préserver les formes arrondies
-        let kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
+            // Auto-gamma: correction gamma automatique (approximation)
+            normalized = Math.pow(normalized / 255, 0.8) * 255;
 
-        // Closing : dilatation puis érosion pour combler les petits trous
-        cv.morphologyEx(binary, morphed, cv.MORPH_CLOSE, kernel);
+            // Unsharp mask (approximation simple)
+            // Augmenter légèrement le contraste local
+            normalized = Math.min(255, Math.max(0, normalized * 1.1));
 
-        // Puis une légère dilatation pour épaissir légèrement les traits
-        cv.dilate(morphed, morphed, kernel, new cv.Point(-1, -1), 1);
+            data[i] = normalized;     // R
+            data[i + 1] = normalized; // G
+            data[i + 2] = normalized; // B
+            // data[i + 3] reste inchangé (Alpha)
+          }
+        }
 
-        // Créer un canvas de sortie
-        const outputCanvas = document.createElement('canvas');
-        cv.imshow(outputCanvas, morphed);
+        // Étape 3: Seuillage OTSU (approximation)
+        // Calculer l'histogramme
+        const histogram = new Array(256).fill(0);
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i]; // Déjà en niveaux de gris
+          histogram[gray]++;
+        }
 
-        // Libérer la mémoire
-        src.delete();
-        gray.delete();
-        sharpened.delete();
-        binary.delete();
-        morphed.delete();
-        upscaled.delete();
-        kernel.delete();
-        sharpenKernel.delete();
+        // Algorithme OTSU simplifié
+        let total = newWidth * newHeight;
+        let sum = 0;
+        for (let i = 0; i < 256; i++) sum += i * histogram[i];
 
-        console.log("Traitement OpenCV terminé: image upscalée + sharpening + binarisée + morphologie");
-        return outputCanvas;
+        let sumB = 0;
+        let wB = 0;
+        let wF = 0;
+        let varMax = 0;
+        let threshold = 0;
+
+        for (let t = 0; t < 256; t++) {
+          wB += histogram[t];
+          if (wB === 0) continue;
+
+          wF = total - wB;
+          if (wF === 0) break;
+
+          sumB += t * histogram[t];
+
+          let mB = sumB / wB;
+          let mF = (sum - sumB) / wF;
+
+          let varBetween = wB * wF * (mB - mF) * (mB - mF);
+
+          if (varBetween > varMax) {
+            varMax = varBetween;
+            threshold = t;
+          }
+        }
+
+        // Appliquer le seuillage OTSU
+        for (let i = 0; i < data.length; i += 4) {
+          const value = data[i] > threshold ? 255 : 0;
+          data[i] = value;     // R
+          data[i + 1] = value; // G
+          data[i + 2] = value; // B
+        }
+
+        // Étape 4: Ajouter une bordure blanche (équivalent -bordercolor White -border 10x10)
+        const finalCanvas = document.createElement('canvas');
+        const finalCtx = finalCanvas.getContext('2d');
+        const borderSize = 10;
+
+        finalCanvas.width = newWidth + (borderSize * 2);
+        finalCanvas.height = newHeight + (borderSize * 2);
+
+        // Remplir avec du blanc
+        finalCtx.fillStyle = 'white';
+        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+        // Replacer l'image traitée au centre
+        ctx.putImageData(imageData, 0, 0);
+        finalCtx.drawImage(canvas, borderSize, borderSize);
+
+        console.log("Traitement terminé: auto-level + OTSU + gamma + unsharp + resize + border");
+        return finalCanvas;
 
       } catch (error) {
-        console.error("Erreur OpenCV:", error);
+        console.error("Erreur lors du traitement d'image:", error);
         // En cas d'erreur, retourner l'image originale
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');

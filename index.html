@@ -774,12 +774,18 @@
     window.onOpenCvReady = function() {
       console.log('OpenCV.js chargé avec succès');
       opencvReady = true;
+
+      // Vérifier la disponibilité des fonctions OpenCV
+      console.log('cv.imread disponible:', typeof cv.imread);
+      console.log('cv.imshow disponible:', typeof cv.imshow);
+      console.log('cv.cvtColor disponible:', typeof cv.cvtColor);
+      console.log('cv.Mat disponible:', typeof cv.Mat);
     };
 
-    // Exemple le plus simple d'OpenCV.js selon la documentation
+    // Fonction de prétraitement d'image avec OpenCV.js
     function preprocessImage(image) {
       // Si OpenCV n'est pas prêt, retourner l'image originale
-      if (!opencvReady || !window.cv) {
+      if (!opencvReady || !window.cv || typeof cv.imread === 'undefined') {
         console.log("OpenCV pas disponible, utilisation de l'image originale");
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -790,7 +796,7 @@
       }
 
       try {
-        console.log("Traitement avec OpenCV.js");
+        console.log("Traitement avec OpenCV.js: upscaling + niveaux de gris + sharpening + binarisation + morphologie");
 
         // Créer un canvas pour l'image d'entrée
         const canvas = document.createElement('canvas');
@@ -799,17 +805,62 @@
         canvas.height = image.height;
         ctx.drawImage(image, 0, 0);
 
-        // Exemple simple selon la documentation OpenCV.js
-        let mat = cv.imread(canvas);  // Lire l'image dans une matrice OpenCV
+        // Lire l'image dans une matrice OpenCV
+        let src = cv.imread(canvas);
+        let gray = new cv.Mat();
+        let sharpened = new cv.Mat();
+        let binary = new cv.Mat();
+        let morphed = new cv.Mat();
+        let upscaled = new cv.Mat();
+
+        // Étape 1: Upscaling x2 pour préserver plus de détails
+        cv.resize(src, upscaled, new cv.Size(src.cols * 2, src.rows * 2), 0, 0, cv.INTER_CUBIC);
+
+        // Étape 2: Conversion en niveaux de gris
+        if (upscaled.channels() === 4) {
+          cv.cvtColor(upscaled, gray, cv.COLOR_RGBA2GRAY);
+        } else if (upscaled.channels() === 3) {
+          cv.cvtColor(upscaled, gray, cv.COLOR_RGB2GRAY);
+        } else {
+          gray = upscaled.clone();
+        }
+
+        // Étape 3: Sharpening pour améliorer la netteté des contours
+        let sharpenKernel = cv.matFromArray(3, 3, cv.CV_32FC1, [
+          0, -1, 0,
+          -1, 5, -1,
+          0, -1, 0
+        ]);
+        cv.filter2D(gray, sharpened, cv.CV_8U, sharpenKernel);
+
+        // Étape 4: Binarisation adaptative avec paramètres ajustés pour l'upscaling
+        cv.adaptiveThreshold(sharpened, binary, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 21, 3);
+
+        // Étape 5: Morphologie pour "combler" et renforcer les caractères
+        // Utiliser un noyau elliptique pour préserver les formes arrondies
+        let kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
+
+        // Closing : dilatation puis érosion pour combler les petits trous
+        cv.morphologyEx(binary, morphed, cv.MORPH_CLOSE, kernel);
+
+        // Puis une légère dilatation pour épaissir légèrement les traits
+        cv.dilate(morphed, morphed, kernel, new cv.Point(-1, -1), 1);
 
         // Créer un canvas de sortie
         const outputCanvas = document.createElement('canvas');
-        cv.imshow(outputCanvas, mat);  // Afficher la matrice sur le canvas
+        cv.imshow(outputCanvas, morphed);
 
-        // Libérer la mémoire (important selon la documentation)
-        mat.delete();
+        // Libérer la mémoire
+        src.delete();
+        gray.delete();
+        sharpened.delete();
+        binary.delete();
+        morphed.delete();
+        upscaled.delete();
+        kernel.delete();
+        sharpenKernel.delete();
 
-        console.log("Traitement OpenCV terminé");
+        console.log("Traitement OpenCV terminé: image upscalée + sharpening + binarisée + morphologie");
         return outputCanvas;
 
       } catch (error) {

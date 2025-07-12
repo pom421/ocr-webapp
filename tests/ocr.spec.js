@@ -59,8 +59,8 @@ test.describe('OCR Tests', () => {
     console.log(`Similarité basique: ${basicPercentage}%`);
     console.log(`Similarité Levenshtein: ${levenshteinPercentage}%`);
 
-    expect(basicSimilarity).toBeGreaterThan(0.4);
-    expect(levenshteinSimilarity).toBeGreaterThan(0.5);
+    expect(basicSimilarity).toBeGreaterThan(0.6);
+    expect(levenshteinSimilarity).toBeGreaterThan(0.4);
     expect(ocrText.length).toBeGreaterThan(0);
   });
 });

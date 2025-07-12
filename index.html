@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OCR-DSFR</title>
 
-  <!-- DSFR CSS -->
+  <!-- CSS DSFR -->
   <link href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.0/dist/dsfr.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.0/dist/utility/utility.min.css" rel="stylesheet" />
 
@@ -276,12 +276,12 @@
     </div>
   </footer>
 
-  <!-- DSFR JavaScript -->
+  <!-- JavaScript DSFR -->
   <script src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.0/dist/dsfr.module.min.js" type="module"></script>
   <script src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.0/dist/dsfr.nomodule.min.js" type="text/javascript"
     nomodule></script>
 
-  <!-- OCR JavaScript -->
+  <!-- JavaScript OCR -->
   <script>
 
     // DEBUT
@@ -404,6 +404,15 @@
       yid: "Yiddish"
     };
 
+    // Initialiser l'application
+    window.addEventListener("load", () => {
+      populateLanguageSelect();
+      setLanguageFromQueryString();
+    });
+
+    window.addEventListener("popstate", (event) => {
+      setLanguageFromQueryString();
+    });
 
     // Gestionnaires d'événements pour la zone de dépôt
     dropzone.addEventListener("dragover", handleDragOver);
@@ -418,6 +427,26 @@
       if (images.length) {
         processFile(images[0].getAsFile());
       }
+    });
+
+    fileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      processFile(file);
+    });
+
+    // Changement de langue
+    languageSelect.addEventListener("change", async (event) => {
+      let newUrl = window.location.pathname;
+      let language = event.target.value;
+      if (language != "fra") {
+        newUrl += "?language=" + language;
+      }
+      window.history.pushState({ path: newUrl }, "", newUrl);
+      await rerunOCR();
+    });
+
+    numbersOnlyCheckbox.addEventListener("change", async () => {
+      await rerunOCR();
     });
 
     async function handleDragOver(event) {
@@ -449,36 +478,6 @@
         fileInput.click();
       }
     }
-
-    fileInput.addEventListener("change", (event) => {
-      const file = event.target.files[0];
-      processFile(file);
-    });
-
-    // Changement de langue
-    languageSelect.addEventListener("change", async (event) => {
-      let newUrl = window.location.pathname;
-      let language = event.target.value;
-      if (language != "fra") {
-        newUrl += "?language=" + language;
-      }
-      window.history.pushState({ path: newUrl }, "", newUrl);
-      await rerunOCR();
-    });
-
-    // Initialiser l'application
-    window.addEventListener("load", () => {
-      populateLanguageSelect();
-      setLanguageFromQueryString();
-    });
-
-    window.addEventListener("popstate", (event) => {
-      setLanguageFromQueryString();
-    });
-
-    numbersOnlyCheckbox.addEventListener("change", async () => {
-      await rerunOCR();
-    });
 
     // Fonction pour copier le contenu dans le presse-papiers
     async function copyToClipboard(textareaId, buttonElement) {
@@ -608,6 +607,59 @@
       ta.style.height = ta.scrollHeight + 5 + "px";
     }
 
+    // Gestion du fichier et création des images dans le HTML
+    async function prepareImagesFromFile(file) {
+      fullDocumentTextarea.value = "";
+      fullDocumentSection.style.display = "none";
+      imageContainer.innerHTML = "";
+
+      if (file.type === "application/pdf") {
+        const { numPages, imageIterator } = await convertPDFToImages(file);
+        let done = 0;
+        dropzone.innerHTML = `<div class="">Préparation de ${numPages} page${numPages > 1 ? "s" : ""}</div>`;
+
+        for await (const { imageURL } of imageIterator) {
+          // Prétraitement de l'image
+          const preprocessedUrl = await preprocessImageUrl(imageURL);
+          await displayImage(preprocessedUrl);
+          done += 1;
+          dropzone.innerHTML = `<div class="">Préparé ${done} sur ${numPages}</div>`;
+        }
+      } else {
+        const imageURL = URL.createObjectURL(file);
+        // Prétraitement de l'image
+        const preprocessedUrl = await preprocessImageUrl(imageURL);
+        await displayImage(preprocessedUrl);
+      }
+    }
+
+    // Traitement de toutes les images présentes dans le DOM
+    async function processAllImages(worker) {
+      const images = document.querySelectorAll(".fr-image-container img");
+      const textareas = document.querySelectorAll(".fr-image-container textarea");
+
+      if (!images.length) return;
+
+      // Vider le texte existant
+      Array.from(textareas).forEach((ta) => (ta.value = ""));
+      showFullDocument();
+
+      const numImages = images.length;
+      let done = 0;
+      dropzone.innerHTML = `<div class="">Traitement de ${numImages} image${numImages > 1 ? "s" : ""}</div>`;
+
+      for (let i = 0; i < numImages; i++) {
+        const imageURL = images[i].src;
+        const ta = textareas[i];
+        ta.placeholder = "Extraction du texte en cours...";
+        const { text } = await ocrImage(worker, imageURL);
+        setTextarea(ta, text);
+        showFullDocument();
+        done += 1;
+        dropzone.innerHTML = `<div class="">Terminé ${done} sur ${numImages}</div>`;
+      }
+    }
+
     // Traitement principal des fichiers
     async function processFile(file) {
       const whitelist = numbersOnlyCheckbox && numbersOnlyCheckbox.checked
@@ -616,12 +668,8 @@
 
       const worker = await Tesseract.createWorker(languageSelect.value);
 
-      // Apply whitelist conditionally with spread operator
+      // Application conditionnelle de la whitelist avec l'opérateur spread
       await worker.setParameters({ ...(whitelist && { tessedit_char_whitelist: whitelist }) });
-
-      fullDocumentTextarea.value = "";
-      fullDocumentSection.style.display = "none";
-      imageContainer.innerHTML = "";
 
       const originalText = dropzone.innerHTML;
       dropzone.innerHTML = '<div class="">Traitement du fichier en cours...</div>';
@@ -629,34 +677,8 @@
       fileSelectionAllowed = false;
 
       try {
-        if (file.type === "application/pdf") {
-          const { numPages, imageIterator } = await convertPDFToImages(file);
-          let done = 0;
-          dropzone.innerHTML = `<div class="">Traitement de ${numPages} page${numPages > 1 ? "s" : ""}</div>`;
-
-          for await (const { imageURL } of imageIterator) {
-
-            // Prétraitement de l'image
-            const preprocessedUrl = await preprocessImageUrl(imageURL);
-            const ta = await displayImage(preprocessedUrl);
-
-            const { text } = await ocrImage(worker, preprocessedUrl);
-            setTextarea(ta, text);
-            showFullDocument();
-            done += 1;
-            dropzone.innerHTML = `<div class="">Terminé ${done} sur ${numPages}</div>`;
-          }
-        } else {
-          const imageURL = URL.createObjectURL(file);
-
-          // Prétraitement de l'image
-          const preprocessedUrl = await preprocessImageUrl(imageURL);
-          const ta = await displayImage(preprocessedUrl);
-
-          const { text } = await ocrImage(worker, preprocessedUrl);
-          setTextarea(ta, text);
-          showFullDocument();
-        }
+        await prepareImagesFromFile(file);
+        await processAllImages(worker);
       } catch (error) {
         console.error("Erreur lors du traitement:", error);
         alert("Erreur lors du traitement du fichier: " + error.message);
@@ -727,29 +749,30 @@
 
       if (!textareas.length) return;
 
-      Array.from(textareas).forEach((ta) => (ta.value = ""));
-      showFullDocument();
-
-      const numImages = images.length;
-      let done = 0;
-      const originalText = dropzone.innerHTML;
-      dropzone.innerHTML = `<div class="">Retraitement de ${numImages} image${numImages > 1 ? "s" : ""}</div>`;
+      const whitelist = numbersOnlyCheckbox && numbersOnlyCheckbox.checked
+        ? '0123456789€,'
+        : undefined;
 
       const worker = await Tesseract.createWorker(languageSelect.value);
 
-      for (let i = 0; i < numImages; i++) {
-        const imageURL = images[i].src;
-        const ta = textareas[i];
-        ta.placeholder = "Extraction du texte en cours...";
-        const { text } = await ocrImage(worker, imageURL);
-        setTextarea(ta, text);
-        showFullDocument();
-        done += 1;
-        dropzone.innerHTML = `<div class="">Terminé ${done} sur ${numImages}</div>`;
+      // Application conditionnelle de la whitelist avec l'opérateur spread
+      await worker.setParameters({ ...(whitelist && { tessedit_char_whitelist: whitelist }) });
+
+      const originalText = dropzone.innerHTML;
+      dropzone.classList.add("disabled");
+      fileSelectionAllowed = false;
+
+      try {
+        await processAllImages(worker);
+      } catch (error) {
+        console.error("Erreur lors du retraitement:", error);
+        alert("Erreur lors du retraitement: " + error.message);
       }
 
       await worker.terminate();
       dropzone.innerHTML = originalText;
+      dropzone.classList.remove("disabled");
+      fileSelectionAllowed = true;
     }
 
     // Conversion PDF en images

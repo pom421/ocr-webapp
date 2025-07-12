@@ -1,6 +1,8 @@
 # Instructions Copilot
 
-Ce projet est une application web qui permet aux utilisateurs de déposer des fichiers PNG et retourne le contenu texte ou un fichier PDF avec texte sélectionnable. L'application est construite avec Node et TypeScript.
+Ce projet est une application web "browser only" qui permet aux utilisateurs de déposer des fichiers PNG et retourne le contenu texte ou un fichier PDF avec texte sélectionnable. L'application est construite avec Node et TypeScript.
+C'est une application "browser only" mais qui sera hébergée sur un serveur web simple, comme GitHub Pages.
+Pour la partie outillage en revanche, tu peux me proposer des moyens modernes pour tester l'application en particulier (Playwright est mon préféré).
 Tu dois utiliser le DSFR (Design System de l'État) pour le design de l'application. (https://www.systeme-de-design.gouv.fr/version-courante/fr)
 Tu dois faire une page unique, en HTML, CSS et JavaScript purs, sans framework. Tu ne dois pas utiliser de framework comme React, Vue ou Angular.
 

@@ -14,10 +14,9 @@
   "keywords": [
     "ocr",
     "dsfr",
-    "webapp",
-    "accessibility"
+    "webapp"
   ],
-  "author": "OCR DSFR Team",
+  "author": "Pom421",
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.54.1",

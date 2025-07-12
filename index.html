@@ -283,63 +283,8 @@
 
   <!-- OCR JavaScript -->
   <script>
-    // Fonction pour copier le contenu dans le presse-papiers
-    async function copyToClipboard(textareaId, buttonElement) {
-      const textarea = document.getElementById(textareaId);
-      const text = textarea.value;
 
-      if (!text.trim()) {
-        return;
-      }
-
-      try {
-        await navigator.clipboard.writeText(text);
-
-        // Feedback visuel - changer l'icône temporairement
-        const icon = buttonElement.querySelector(".fr-icon-clipboard-line, .fr-icon-check-line");
-        const originalClass = icon.className;
-
-        // Changer pour une icône de validation
-        icon.className = "fr-icon-check-line";
-        buttonElement.classList.add("copied");
-        buttonElement.title = "Texte copié !";
-
-        // Forcer l'initialisation DSFR des icônes
-        if (window.dsfr && typeof window.dsfr.apply === "function") {
-          window.dsfr.apply();
-        }
-
-        // Remettre l'icône d'origine après 2 secondes
-        setTimeout(() => {
-          icon.className = originalClass;
-          buttonElement.classList.remove("copied");
-          buttonElement.title = "Copier le texte";
-          if (window.dsfr && typeof window.dsfr.apply === "function") {
-            window.dsfr.apply();
-          }
-        }, 2000);
-      } catch (err) {
-        console.error("Erreur lors de la copie:", err);
-
-        // Fallback pour les navigateurs plus anciens
-        textarea.select();
-        textarea.setSelectionRange(0, 99999);
-        document.execCommand("copy");
-
-        // Feedback visuel même pour le fallback
-        const originalClass = buttonElement.className;
-        buttonElement.className = originalClass.replace(
-          "fr-icon-clipboard-line",
-          "fr-icon-check-line"
-        );
-        buttonElement.classList.add("copied");
-
-        setTimeout(() => {
-          buttonElement.className = originalClass;
-          buttonElement.classList.remove("copied");
-        }, 2000);
-      }
-    }
+    // DEBUT
 
     // Configuration
     const desiredWidth = 4000;
@@ -459,6 +404,140 @@
       yid: "Yiddish"
     };
 
+
+    // Gestionnaires d'événements pour la zone de dépôt
+    dropzone.addEventListener("dragover", handleDragOver);
+    dropzone.addEventListener("dragleave", handleDragLeave);
+    dropzone.addEventListener("drop", handleDrop);
+    dropzone.addEventListener("click", handleClick);
+
+    // Support du collage d'images
+    document.addEventListener("paste", (event) => {
+      const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+      const images = Array.from(items).filter((item) => item.type.indexOf("image") !== -1);
+      if (images.length) {
+        processFile(images[0].getAsFile());
+      }
+    });
+
+    async function handleDragOver(event) {
+      event.preventDefault();
+      if (fileSelectionAllowed) {
+        dropzone.classList.add("drag-over");
+      }
+    }
+
+    async function handleDragLeave(event) {
+      event.preventDefault();
+      if (fileSelectionAllowed) {
+        dropzone.classList.remove("drag-over");
+      }
+    }
+
+    async function handleDrop(event) {
+      event.preventDefault();
+      if (fileSelectionAllowed) {
+        dropzone.classList.remove("drag-over");
+        const file = event.dataTransfer.files[0];
+        fileInput.files = event.dataTransfer.files;
+        processFile(file);
+      }
+    }
+
+    async function handleClick() {
+      if (fileSelectionAllowed) {
+        fileInput.click();
+      }
+    }
+
+    fileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      processFile(file);
+    });
+
+    // Changement de langue
+    languageSelect.addEventListener("change", async (event) => {
+      let newUrl = window.location.pathname;
+      let language = event.target.value;
+      if (language != "fra") {
+        newUrl += "?language=" + language;
+      }
+      window.history.pushState({ path: newUrl }, "", newUrl);
+      await rerunOCR();
+    });
+
+    // Initialiser l'application
+    window.addEventListener("load", () => {
+      populateLanguageSelect();
+      setLanguageFromQueryString();
+    });
+
+    window.addEventListener("popstate", (event) => {
+      setLanguageFromQueryString();
+    });
+
+    numbersOnlyCheckbox.addEventListener("change", async () => {
+      await rerunOCR();
+    });
+
+    // Fonction pour copier le contenu dans le presse-papiers
+    async function copyToClipboard(textareaId, buttonElement) {
+      const textarea = document.getElementById(textareaId);
+      const text = textarea.value;
+
+      if (!text.trim()) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+
+        // Feedback visuel - changer l'icône temporairement
+        const icon = buttonElement.querySelector(".fr-icon-clipboard-line, .fr-icon-check-line");
+        const originalClass = icon.className;
+
+        // Changer pour une icône de validation
+        icon.className = "fr-icon-check-line";
+        buttonElement.classList.add("copied");
+        buttonElement.title = "Texte copié !";
+
+        // Forcer l'initialisation DSFR des icônes
+        if (window.dsfr && typeof window.dsfr.apply === "function") {
+          window.dsfr.apply();
+        }
+
+        // Remettre l'icône d'origine après 2 secondes
+        setTimeout(() => {
+          icon.className = originalClass;
+          buttonElement.classList.remove("copied");
+          buttonElement.title = "Copier le texte";
+          if (window.dsfr && typeof window.dsfr.apply === "function") {
+            window.dsfr.apply();
+          }
+        }, 2000);
+      } catch (err) {
+        console.error("Erreur lors de la copie:", err);
+
+        // Fallback pour les navigateurs plus anciens
+        textarea.select();
+        textarea.setSelectionRange(0, 99999);
+        document.execCommand("copy");
+
+        // Feedback visuel même pour le fallback
+        const originalClass = buttonElement.className;
+        buttonElement.className = originalClass.replace(
+          "fr-icon-clipboard-line",
+          "fr-icon-check-line"
+        );
+        buttonElement.classList.add("copied");
+
+        setTimeout(() => {
+          buttonElement.className = originalClass;
+          buttonElement.classList.remove("copied");
+        }, 2000);
+      }
+    }
+
     // Populer le select des langues
     function populateLanguageSelect() {
       // Vider le select
@@ -529,58 +608,16 @@
       ta.style.height = ta.scrollHeight + 5 + "px";
     }
 
-    // Gestionnaires d'événements pour la zone de dépôt
-    dropzone.addEventListener("dragover", handleDragOver);
-    dropzone.addEventListener("dragleave", handleDragLeave);
-    dropzone.addEventListener("drop", handleDrop);
-    dropzone.addEventListener("click", handleClick);
-
-    async function handleDragOver(event) {
-      event.preventDefault();
-      if (fileSelectionAllowed) {
-        dropzone.classList.add("drag-over");
-      }
-    }
-
-    async function handleDragLeave(event) {
-      event.preventDefault();
-      if (fileSelectionAllowed) {
-        dropzone.classList.remove("drag-over");
-      }
-    }
-
-    async function handleDrop(event) {
-      event.preventDefault();
-      if (fileSelectionAllowed) {
-        dropzone.classList.remove("drag-over");
-        const file = event.dataTransfer.files[0];
-        fileInput.files = event.dataTransfer.files;
-        processFile(file);
-      }
-    }
-
-    async function handleClick() {
-      if (fileSelectionAllowed) {
-        fileInput.click();
-      }
-    }
-
-    fileInput.addEventListener("change", (event) => {
-      const file = event.target.files[0];
-      processFile(file);
-    });
-
     // Traitement principal des fichiers
     async function processFile(file) {
       const whitelist = numbersOnlyCheckbox && numbersOnlyCheckbox.checked
         ? '0123456789€,'
-        : '0123456789€,abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        : undefined;
 
       const worker = await Tesseract.createWorker(languageSelect.value);
-      await worker.setParameters({
-        tessedit_char_whitelist: whitelist,
-        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK
-      });
+
+      // Apply whitelist conditionally with spread operator
+      await worker.setParameters({ ...(whitelist && { tessedit_char_whitelist: whitelist }) });
 
       fullDocumentTextarea.value = "";
       fullDocumentSection.style.display = "none";
@@ -714,15 +751,6 @@
       await worker.terminate();
       dropzone.innerHTML = originalText;
     }
-
-    // Support du collage d'images
-    document.addEventListener("paste", (event) => {
-      const items = (event.clipboardData || event.originalEvent.clipboardData).items;
-      const images = Array.from(items).filter((item) => item.type.indexOf("image") !== -1);
-      if (images.length) {
-        processFile(images[0].getAsFile());
-      }
-    });
 
     // Conversion PDF en images
     async function convertPDFToImages(file) {
@@ -910,17 +938,6 @@
       return { text };
     }
 
-    // Changement de langue
-    languageSelect.addEventListener("change", async (event) => {
-      let newUrl = window.location.pathname;
-      let language = event.target.value;
-      if (language != "fra") {
-        newUrl += "?language=" + language;
-      }
-      window.history.pushState({ path: newUrl }, "", newUrl);
-      await rerunOCR();
-    });
-
     // Initialisation
     function setLanguageFromQueryString() {
       const params = new URLSearchParams(window.location.search);
@@ -931,19 +948,6 @@
       languageSelect.value = value;
     }
 
-    // Initialiser l'application
-    window.addEventListener("load", () => {
-      populateLanguageSelect();
-      setLanguageFromQueryString();
-    });
-
-    window.addEventListener("popstate", (event) => {
-      setLanguageFromQueryString();
-    });
-
-    numbersOnlyCheckbox.addEventListener("change", async () => {
-      await rerunOCR();
-    });
   </script>
 </body>
 

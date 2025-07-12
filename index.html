@@ -29,21 +29,6 @@
   <!-- Tesseract.js -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js"></script>
 
-  <!-- OpenCV.js - Plus nécessaire avec l'approche ImageMagick
-  <script>
-    // Configuration d'OpenCV selon la documentation officielle
-    var Module = {
-      onRuntimeInitialized() {
-        console.log('OpenCV.js is ready.');
-        if (window.onOpenCvReady) {
-          window.onOpenCvReady();
-        }
-      }
-    };
-  </script>
-  <script async src="https://docs.opencv.org/4.10.0/opencv.js" type="text/javascript"></script>
-  -->
-
   <style>
     .fr-dropzone {
       box-sizing: border-box;
@@ -767,15 +752,6 @@
       }
       return { numPages: numPages, imageIterator: images() };
     }
-
-    // Variables globales - plus besoin d'OpenCV
-    // let opencvReady = false;
-
-    // Plus besoin du callback OpenCV
-    // window.onOpenCvReady = function() {
-    //   console.log('OpenCV.js chargé avec succès');
-    //   opencvReady = true;
-    // };
 
     // Fonction de prétraitement d'image inspirée d'ImageMagick
     function preprocessImage(image) {

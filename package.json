@@ -2,11 +2,14 @@
   "name": "ocr-dsfr",
   "version": "1.0.0",
   "description": "Application OCR utilisant le Design System de l'État français",
-  "main": "src/index.html",
+  "main": "index.html",
   "scripts": {
     "dev": "http-server . -p 3000 -o",
     "start": "http-server . -p 3000",
-    "format": "prettier --write \"**/*.{html,css,js,json}\""
+    "format": "prettier --write \"**/*.{html,css,js,json}\"",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug"
   },
   "keywords": [
     "ocr",
@@ -17,6 +20,7 @@
   "author": "OCR DSFR Team",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "http-server": "^14.1.1",
     "prettier": "^3.1.1"
   },

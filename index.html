@@ -607,115 +607,6 @@
       ta.style.height = ta.scrollHeight + 5 + "px";
     }
 
-    // Extraction de texte depuis un PDF
-    async function extractTextFromPDF(file) {
-      try {
-        const pdf = await window.pdfjsLib.getDocument(URL.createObjectURL(file)).promise;
-        const numPages = pdf.numPages;
-        const extractedTexts = [];
-        let totalTextLength = 0;
-
-        dropzone.innerHTML = `<div class="">Extraction du texte de ${numPages} page${numPages > 1 ? "s" : ""}</div>`;
-
-        for (let i = 1; i <= numPages; i++) {
-          try {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            
-            // Extraire le texte de chaque élément
-            const pageText = textContent.items
-              .map(item => item.str)
-              .join(' ')
-              .trim();
-            
-            extractedTexts.push(pageText);
-            totalTextLength += pageText.length;
-            
-            dropzone.innerHTML = `<div class="">Extraction du texte: page ${i} sur ${numPages}</div>`;
-          } catch (error) {
-            console.error(`Erreur lors de l'extraction de texte de la page ${i}:`, error);
-            extractedTexts.push('');
-          }
-        }
-
-        return {
-          success: totalTextLength > 50, // Considérer comme réussi si plus de 50 caractères
-          texts: extractedTexts,
-          totalLength: totalTextLength
-        };
-      } catch (error) {
-        console.error('Erreur lors de l\'extraction de texte PDF:', error);
-        return { success: false, texts: [], totalLength: 0 };
-      }
-    }
-
-    // Afficher les textes extraits directement du PDF
-    async function displayExtractedTexts(texts) {
-      fullDocumentTextarea.value = "";
-      fullDocumentSection.style.display = "none";
-      imageContainer.innerHTML = "";
-
-      for (let i = 0; i < texts.length; i++) {
-        const pageText = texts[i];
-        
-        // Créer un conteneur pour cette page
-        const pageContainer = document.createElement("div");
-        pageContainer.className = "fr-input-group";
-        pageContainer.style.marginBottom = "2rem";
-
-        // Titre de la page
-        const pageTitle = document.createElement("h3");
-        pageTitle.textContent = `Page ${i + 1}`;
-        pageTitle.style.marginBottom = "1rem";
-        pageContainer.appendChild(pageTitle);
-
-        const label = document.createElement("label");
-        label.className = "fr-label";
-        label.textContent = "Texte extrait :";
-
-        // Conteneur avec position relative pour le bouton de copie
-        const textareaWrapper = document.createElement("div");
-        textareaWrapper.className = "fr-textarea-container";
-
-        const textarea = document.createElement("textarea");
-        textarea.className = "fr-input fr-result-textarea";
-        
-        // Générer un ID unique pour cette textarea
-        const textareaId = "textarea_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
-        textarea.id = textareaId;
-
-        // Définir le contenu et ajuster la hauteur
-        setTextarea(textarea, pageText);
-
-        // Bouton de copie
-        const copyButton = document.createElement("button");
-        copyButton.className = "fr-btn fr-btn--secondary fr-btn--sm fr-copy-btn";
-        copyButton.type = "button";
-        copyButton.title = "Copier le texte";
-        copyButton.setAttribute("aria-label", "Copier le texte dans le presse-papiers");
-        copyButton.onclick = () => copyToClipboard(textareaId, copyButton);
-
-        const copyIcon = document.createElement("span");
-        copyIcon.className = "fr-icon-clipboard-line";
-        copyIcon.setAttribute("aria-hidden", "true");
-        copyButton.appendChild(copyIcon);
-
-        textareaWrapper.appendChild(textarea);
-        textareaWrapper.appendChild(copyButton);
-        pageContainer.appendChild(label);
-        pageContainer.appendChild(textareaWrapper);
-        imageContainer.appendChild(pageContainer);
-      }
-
-      // Forcer l'initialisation DSFR des icônes après ajout dynamique
-      if (window.dsfr && typeof window.dsfr.apply === "function") {
-        window.dsfr.apply();
-      }
-
-      // Afficher le document complet si plusieurs pages
-      showFullDocument();
-    }
-
     // Gestion du fichier et création des images dans le HTML
     async function prepareImagesFromFile(file) {
       fullDocumentTextarea.value = "";
@@ -723,37 +614,22 @@
       imageContainer.innerHTML = "";
 
       if (file.type === "application/pdf") {
-        // Essayer d'abord l'extraction de texte
-        dropzone.innerHTML = '<div class="">Tentative d\'extraction directe du texte...</div>';
-        const textExtraction = await extractTextFromPDF(file);
-        
-        if (textExtraction.success) {
-          // Le PDF contient du texte extractible
-          dropzone.innerHTML = `<div class="">✓ Texte extrait directement (${textExtraction.totalLength} caractères)</div>`;
-          await displayExtractedTexts(textExtraction.texts);
-          return { useOCR: false }; // Indiquer qu'on n'a pas besoin d'OCR
-        } else {
-          // Le PDF ne contient pas de texte ou très peu, utiliser OCR
-          dropzone.innerHTML = '<div class="">Pas de texte détecté, conversion en images pour OCR...</div>';
-          const { numPages, imageIterator } = await convertPDFToImages(file);
-          let done = 0;
-          dropzone.innerHTML = `<div class="">Préparation de ${numPages} page${numPages > 1 ? "s" : ""} pour OCR</div>`;
+        const { numPages, imageIterator } = await convertPDFToImages(file);
+        let done = 0;
+        dropzone.innerHTML = `<div class="">Préparation de ${numPages} page${numPages > 1 ? "s" : ""}</div>`;
 
-          for await (const { imageURL } of imageIterator) {
-            // Prétraitement de l'image SEULEMENT pour OCR
-            const preprocessedUrl = await preprocessImageUrl(imageURL);
-            await displayImage(preprocessedUrl);
-            done += 1;
-            dropzone.innerHTML = `<div class="">Préparé ${done} sur ${numPages}</div>`;
-          }
-          return { useOCR: true }; // Indiquer qu'on a besoin d'OCR
+        for await (const { imageURL } of imageIterator) {
+          // Prétraitement de l'image
+          const preprocessedUrl = await preprocessImageUrl(imageURL);
+          await displayImage(preprocessedUrl);
+          done += 1;
+          dropzone.innerHTML = `<div class="">Préparé ${done} sur ${numPages}</div>`;
         }
       } else {
-        // Fichier image normal - utiliser prétraitement pour OCR
         const imageURL = URL.createObjectURL(file);
+        // Prétraitement de l'image
         const preprocessedUrl = await preprocessImageUrl(imageURL);
         await displayImage(preprocessedUrl);
-        return { useOCR: true }; // Indiquer qu'on a besoin d'OCR
       }
     }
 
@@ -786,34 +662,29 @@
 
     // Traitement principal des fichiers
     async function processFile(file) {
+      const whitelist = numbersOnlyCheckbox && numbersOnlyCheckbox.checked
+        ? '0123456789€,'
+        : undefined;
+
+      const worker = await Tesseract.createWorker(languageSelect.value);
+
+      // Application conditionnelle de la whitelist avec l'opérateur spread
+      await worker.setParameters({ ...(whitelist && { tessedit_char_whitelist: whitelist }) });
+
       const originalText = dropzone.innerHTML;
       dropzone.innerHTML = '<div class="">Traitement du fichier en cours...</div>';
       dropzone.classList.add("disabled");
       fileSelectionAllowed = false;
 
       try {
-        const preparation = await prepareImagesFromFile(file);
-        
-        if (preparation.useOCR) {
-          // Utiliser OCR pour les images ou PDFs sans texte
-          const whitelist = numbersOnlyCheckbox && numbersOnlyCheckbox.checked
-            ? '0123456789€,'
-            : undefined;
-
-          const worker = await Tesseract.createWorker(languageSelect.value);
-          await worker.setParameters({ ...(whitelist && { tessedit_char_whitelist: whitelist }) });
-          
-          await processAllImages(worker);
-          await worker.terminate();
-        } else {
-          // Texte déjà extrait du PDF, pas besoin d'OCR
-          dropzone.innerHTML = '<div class="">✓ Traitement terminé (extraction directe)</div>';
-        }
+        await prepareImagesFromFile(file);
+        await processAllImages(worker);
       } catch (error) {
         console.error("Erreur lors du traitement:", error);
         alert("Erreur lors du traitement du fichier: " + error.message);
       }
 
+      await worker.terminate();
       dropzone.innerHTML = originalText;
       dropzone.classList.remove("disabled");
       fileSelectionAllowed = true;
@@ -876,38 +747,32 @@
       const textareas = document.querySelectorAll(".fr-image-container textarea");
       const images = document.querySelectorAll(".fr-image-container img");
 
-      // Si pas de textareas, rien à faire
       if (!textareas.length) return;
 
-      // Si il y a des images, c'est qu'on utilise OCR
-      if (images.length > 0) {
-        const whitelist = numbersOnlyCheckbox && numbersOnlyCheckbox.checked
-          ? '0123456789€,'
-          : undefined;
+      const whitelist = numbersOnlyCheckbox && numbersOnlyCheckbox.checked
+        ? '0123456789€,'
+        : undefined;
 
-        const worker = await Tesseract.createWorker(languageSelect.value);
-        await worker.setParameters({ ...(whitelist && { tessedit_char_whitelist: whitelist }) });
+      const worker = await Tesseract.createWorker(languageSelect.value);
 
-        const originalText = dropzone.innerHTML;
-        dropzone.classList.add("disabled");
-        fileSelectionAllowed = false;
+      // Application conditionnelle de la whitelist avec l'opérateur spread
+      await worker.setParameters({ ...(whitelist && { tessedit_char_whitelist: whitelist }) });
 
-        try {
-          await processAllImages(worker);
-        } catch (error) {
-          console.error("Erreur lors du retraitement:", error);
-          alert("Erreur lors du retraitement: " + error.message);
-        }
+      const originalText = dropzone.innerHTML;
+      dropzone.classList.add("disabled");
+      fileSelectionAllowed = false;
 
-        await worker.terminate();
-        dropzone.innerHTML = originalText;
-        dropzone.classList.remove("disabled");
-        fileSelectionAllowed = true;
-      } else {
-        // Texte extrait directement du PDF, pas de retraitement nécessaire
-        // car la langue n'affecte pas l'extraction de texte PDF
-        console.log("Texte extrait directement du PDF, pas de retraitement OCR nécessaire");
+      try {
+        await processAllImages(worker);
+      } catch (error) {
+        console.error("Erreur lors du retraitement:", error);
+        alert("Erreur lors du retraitement: " + error.message);
       }
+
+      await worker.terminate();
+      dropzone.innerHTML = originalText;
+      dropzone.classList.remove("disabled");
+      fileSelectionAllowed = true;
     }
 
     // Conversion PDF en images

@@ -1,3 +1,6 @@
+export const THRESHOLD_BASIC = 0.6;
+export const THRESHOLD_LEVENSHTEIN = 0.4;
+
 // Similarité précision basique
 // - Normalisation : conversion en minuscules et nettoyage des espaces
 // - Tokenisation : découpage en mots
@@ -62,5 +65,3 @@ export const calculateLevenshteinSimilarity = (text1, text2) => {
   return maxLength > 0 ? 1 - (distance / maxLength) : 1;
 };
 
-// Alias pour compatibilité
-export const calculateSimilarity = calculateBasicSimilarity;

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { calculateBasicSimilarity, calculateLevenshteinSimilarity } from './textComparison.js';
+import { calculateBasicSimilarity, calculateLevenshteinSimilarity, THRESHOLD_BASIC, THRESHOLD_LEVENSHTEIN } from './textComparison.js';
 
-const EXPECTED_TABLE_TEXT = `A B C D E
+const EXPECTED_TEXT = `A B C D E
 
 85 10 79,00 € 26 32
 11 89 64,00 € 41 30
@@ -48,19 +48,19 @@ test.describe('OCR Tests', () => {
 
     const ocrText = await page.inputValue('.fr-result-textarea');
 
-    const basicSimilarity = calculateBasicSimilarity(ocrText, EXPECTED_TABLE_TEXT);
-    const levenshteinSimilarity = calculateLevenshteinSimilarity(ocrText, EXPECTED_TABLE_TEXT);
+    const basicSimilarity = calculateBasicSimilarity(ocrText, EXPECTED_TEXT);
+    const levenshteinSimilarity = calculateLevenshteinSimilarity(ocrText, EXPECTED_TEXT);
 
     const basicPercentage = Math.round(basicSimilarity * 100);
     const levenshteinPercentage = Math.round(levenshteinSimilarity * 100);
 
     console.log(`Texte OCR extrait: "${ocrText}"`);
-    console.log(`Texte attendu: "${EXPECTED_TABLE_TEXT}"`);
+    console.log(`Texte attendu: "${EXPECTED_TEXT}"`);
     console.log(`Similarité basique: ${basicPercentage}%`);
     console.log(`Similarité Levenshtein: ${levenshteinPercentage}%`);
 
-    expect(basicSimilarity).toBeGreaterThan(0.6);
-    expect(levenshteinSimilarity).toBeGreaterThan(0.4);
+    expect(basicSimilarity).toBeGreaterThan(THRESHOLD_BASIC);
+    expect(levenshteinSimilarity).toBeGreaterThan(THRESHOLD_LEVENSHTEIN);
     expect(ocrText.length).toBeGreaterThan(0);
   });
 });
